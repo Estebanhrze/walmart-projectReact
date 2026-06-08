@@ -7,9 +7,12 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "import:csv": "node --env-file=.env.local scripts/importWalmartCsv.mjs"
   },
   "dependencies": {
+    "firebase": "^12.14.0",
+    "papaparse": "^5.5.3",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
   },

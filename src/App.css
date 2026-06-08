@@ -108,31 +108,6 @@
   box-shadow: inset 3px 0 0 var(--yellow);
 }
 
-.sidebar-note {
-  margin-top: auto;
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  border-radius: 8px;
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.sidebar-note span,
-.sidebar-note p {
-  color: #9fb9d5;
-  font-size: 12px;
-}
-
-.sidebar-note strong {
-  display: block;
-  margin: 2px 0 8px;
-  color: #fff;
-}
-
-.sidebar-note p {
-  margin: 0;
-  line-height: 1.4;
-}
-
 .dashboard-main {
   min-width: 0;
   padding: 24px;
@@ -296,11 +271,42 @@
 .filter-panel,
 .chart-card,
 .data-table-card,
-.dataset-info {
+.dataset-info,
+.dashboard-status,
+.empty-state {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.9);
   box-shadow: var(--shadow);
+}
+
+.dashboard-status {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dashboard-status strong {
+  color: var(--blue-dark);
+}
+
+.dashboard-status span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: right;
+}
+
+.dashboard-status.error {
+  border-color: rgba(217, 93, 79, 0.35);
+  background: rgba(217, 93, 79, 0.08);
+}
+
+.dashboard-status.error strong {
+  color: var(--coral);
 }
 
 .filter-panel {
@@ -389,18 +395,40 @@
 .trend-chart svg,
 .scatter-chart svg {
   width: 100%;
-  min-height: 240px;
+  min-height: 260px;
   overflow: visible;
 }
 
 .trend-area {
-  fill: rgba(0, 113, 206, 0.1);
+  fill: url("#trendFill");
 }
 
 .trend-line {
   fill: none;
   stroke: var(--blue);
+  stroke-linecap: round;
+  stroke-linejoin: round;
   stroke-width: 4;
+}
+
+.trend-gridline {
+  fill: none;
+  stroke: #e7edf5;
+  stroke-dasharray: 5 7;
+  stroke-width: 1;
+}
+
+.trend-axis {
+  fill: none;
+  stroke: #cbd6e2;
+  stroke-width: 1.5;
+}
+
+.trend-marker-line {
+  fill: none;
+  stroke: rgba(0, 113, 206, 0.16);
+  stroke-dasharray: 3 6;
+  stroke-width: 1;
 }
 
 .trend-chart circle,
@@ -413,8 +441,18 @@
 .trend-chart text,
 .scatter-chart text {
   fill: var(--muted);
-  font-size: 13px;
   font-weight: 700;
+}
+
+.trend-value {
+  fill: var(--blue-dark);
+  font-size: 12px;
+  text-anchor: middle;
+}
+
+.trend-month {
+  font-size: 13px;
+  text-anchor: middle;
 }
 
 .chart-caption {
@@ -693,6 +731,31 @@
   padding: 16px;
 }
 
+.empty-state {
+  min-height: 320px;
+  padding: 42px 20px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.empty-state .icon {
+  width: 42px;
+  height: 42px;
+  color: var(--blue);
+}
+
+.empty-state h2 {
+  margin: 8px 0 4px;
+}
+
+.empty-state p {
+  max-width: 520px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .status-pill,
 .table-pill {
   border-radius: 999px;
@@ -887,6 +950,15 @@ td {
   .filter-panel {
     position: relative;
     padding: 12px;
+  }
+
+  .dashboard-status {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dashboard-status span {
+    text-align: left;
   }
 
   .filter-grid {

@@ -1,14 +1,15 @@
+import { useMemo, useState } from 'react'
 import './App.css'
 import { BarChart, CustomerSplitChart, DemandChart, DonutChart, ScatterChart, TrendChart } from './components/Charts'
 import { ChartCard } from './components/ChartCard'
 import { DataTable } from './components/DataTable'
-import { DatasetInfo } from './components/DatasetInfo'
-import { FilterPanel } from './components/FilterPanel'
+import { FilterPanel, type DashboardFilterOptions, type DashboardFilters } from './components/FilterPanel'
 import { Header } from './components/Header'
 import { Icon } from './components/Icon'
 import { KpiCard } from './components/KpiCard'
 import { Sidebar } from './components/Sidebar'
-import { salesRecords } from './data/mockSales'
+import type { SalesRecord } from './data/mockSales'
+import { useSalesRecords } from './hooks/useSalesRecords'
 import {
   averageTicket,
   formatCompactCurrency,
@@ -24,14 +25,112 @@ import {
   sumRevenue,
 } from './utils/analytics'
 
+const defaultFilters: DashboardFilters = {
+  category: 'All',
+  customer_gender: 'All',
+  customer_loyalty_level: 'All',
+  dateRange: '2024',
+  payment_method: 'All',
+  store_location: 'All',
+}
+
+const getUniqueOptions = <K extends keyof SalesRecord>(records: SalesRecord[], key: K) => [
+  'All',
+  ...Array.from(new Set(records.map((record) => String(record[key])).filter(Boolean))).sort(),
+]
+
+const getQuarter = (dateValue: string) => {
+  const month = new Date(dateValue).getMonth()
+
+  if (!Number.isFinite(month)) {
+    return ''
+  }
+
+  if (month >= 0 && month <= 2) {
+    return 'Q1 2024'
+  }
+
+  if (month >= 3 && month <= 5) {
+    return 'Q2 2024'
+  }
+
+  if (month >= 6 && month <= 8) {
+    return 'Q3 2024'
+  }
+
+  return 'Q4 2024'
+}
+
+const matchesFilter = (value: string, filterValue: string) => filterValue === 'All' || value === filterValue
+
+const applyDashboardFilters = (records: SalesRecord[], filters: DashboardFilters) =>
+  records.filter((record) => {
+    const transactionYear = String(new Date(record.transaction_date).getFullYear())
+    const matchesDate =
+      filters.dateRange === 'All' ||
+      filters.dateRange === transactionYear ||
+      filters.dateRange === getQuarter(record.transaction_date)
+
+    return (
+      matchesDate &&
+      matchesFilter(record.payment_method, filters.payment_method) &&
+      matchesFilter(record.customer_gender, filters.customer_gender) &&
+      matchesFilter(record.category, filters.category) &&
+      matchesFilter(record.customer_loyalty_level, filters.customer_loyalty_level) &&
+      matchesFilter(record.store_location, filters.store_location)
+    )
+  })
+
+const getActiveFilterLabels = (filters: DashboardFilters) =>
+  [
+    filters.dateRange,
+    filters.store_location === 'All' ? 'Todas las ciudades' : filters.store_location,
+    filters.payment_method === 'All' ? 'Todos los pagos' : filters.payment_method,
+    filters.category === 'All' ? 'Todas las categorias' : filters.category,
+  ].filter(Boolean)
+
 function App() {
-  const totalRevenue = sumRevenue(salesRecords)
-  const paymentRevenue = groupRevenueBy(salesRecords, 'payment_method')
-  const paymentUsage = groupCountBy(salesRecords, 'payment_method')
-  const categoryRevenue = groupRevenueBy(salesRecords, 'category')
-  const genderRevenue = groupRevenueBy(salesRecords, 'customer_gender')
-  const storeRevenue = groupRevenueBy(salesRecords, 'store_location')
-  const demandHealth = getDemandHealth(salesRecords)
+  const { error, isLoading, records: salesRecords, status } = useSalesRecords()
+  const [draftFilters, setDraftFilters] = useState<DashboardFilters>(defaultFilters)
+  const [appliedFilters, setAppliedFilters] = useState<DashboardFilters>(defaultFilters)
+  const filteredRecords = useMemo(
+    () => applyDashboardFilters(salesRecords, appliedFilters),
+    [appliedFilters, salesRecords],
+  )
+  const hasSourceRecords = salesRecords.length > 0
+  const hasFilteredRecords = filteredRecords.length > 0
+  const filterOptions = useMemo<DashboardFilterOptions>(
+    () => ({
+      category: getUniqueOptions(salesRecords, 'category'),
+      customer_gender: getUniqueOptions(salesRecords, 'customer_gender'),
+      customer_loyalty_level: getUniqueOptions(salesRecords, 'customer_loyalty_level'),
+      dateRange: ['All', '2024', 'Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024'],
+      payment_method: getUniqueOptions(salesRecords, 'payment_method'),
+      store_location: getUniqueOptions(salesRecords, 'store_location'),
+    }),
+    [salesRecords],
+  )
+  const activeFilterLabels = getActiveFilterLabels(appliedFilters)
+  const totalRevenue = sumRevenue(filteredRecords)
+  const paymentRevenue = groupRevenueBy(filteredRecords, 'payment_method')
+  const paymentUsage = groupCountBy(filteredRecords, 'payment_method')
+  const categoryRevenue = groupRevenueBy(filteredRecords, 'category')
+  const genderRevenue = groupRevenueBy(filteredRecords, 'customer_gender')
+  const storeRevenue = groupRevenueBy(filteredRecords, 'store_location')
+  const demandHealth = getDemandHealth(filteredRecords)
+
+  const handleFilterChange = (key: keyof DashboardFilters, value: string) => {
+    setDraftFilters((currentFilters) => ({ ...currentFilters, [key]: value }))
+  }
+
+  const handleApplyFilters = () => {
+    setAppliedFilters(draftFilters)
+  }
+
+  const handleResetFilters = () => {
+    setDraftFilters(defaultFilters)
+    setAppliedFilters(defaultFilters)
+  }
 
   return (
     <div className="app-shell" id="dashboard">
@@ -41,10 +140,10 @@ function App() {
         <Header />
 
         <section className="active-filter-strip" aria-label="Filtros activos">
-          <span>2024</span>
-          <span>Todas las ciudades</span>
-          <span>Todos los pagos</span>
-          <button type="button">Filtros</button>
+          {activeFilterLabels.map((label) => (
+            <span key={label}>{label}</span>
+          ))}
+          <button type="button">{formatNumber(filteredRecords.length)} resultados</button>
         </section>
 
         <section className="kpi-grid" aria-label="Indicadores principales">
@@ -56,11 +155,11 @@ function App() {
             value={formatCurrency(totalRevenue)}
           />
           <KpiCard
-            detail={`${formatNumber(salesRecords.length)} transacciones mock`}
+            detail={`${formatNumber(filteredRecords.length)} de ${formatNumber(salesRecords.length)} transacciones`}
             icon={<Icon name="bar" />}
             label="Ticket promedio"
             tone="green"
-            value={formatCurrency(averageTicket(salesRecords))}
+            value={formatCurrency(averageTicket(filteredRecords))}
           />
           <KpiCard
             detail="Mayor frecuencia de uso"
@@ -92,15 +191,35 @@ function App() {
           />
         </section>
 
-        <FilterPanel />
+        <section
+          className={error ? 'dashboard-status error' : 'dashboard-status'}
+          aria-live="polite"
+        >
+          <strong>{isLoading ? 'Cargando datos desde Firebase...' : status}</strong>
+          <span>
+            {error ??
+              (hasSourceRecords
+                ? `${formatNumber(salesRecords.length)} registros cargados; ${formatNumber(filteredRecords.length)} visibles con filtros.`
+                : 'La coleccion sales_transactions no tiene documentos para visualizar.')}
+          </span>
+        </section>
 
-        <section className="analytics-grid">
+        <FilterPanel
+          filters={draftFilters}
+          onApply={handleApplyFilters}
+          onChange={handleFilterChange}
+          onReset={handleResetFilters}
+          options={filterOptions}
+        />
+
+        {hasFilteredRecords ? (
+          <section className="analytics-grid">
           <ChartCard
             className="wide"
-            subtitle="Ingreso mensual simulado para validar el espacio del grafico temporal."
+            subtitle="Ingreso mensual calculado desde documentos de Firestore."
             title="Evolucion de ventas"
           >
-            <TrendChart data={getTrendSeries(salesRecords)} />
+            <TrendChart data={getTrendSeries(filteredRecords)} />
           </ChartCard>
 
           <ChartCard
@@ -142,7 +261,7 @@ function App() {
             subtitle="Relacion entre unidades compradas e ingreso generado."
             title="Cantidad vs revenue"
           >
-            <ScatterChart data={getScatterSeries(salesRecords)} />
+            <ScatterChart data={getScatterSeries(filteredRecords)} />
           </ChartCard>
 
           <ChartCard
@@ -150,12 +269,22 @@ function App() {
             subtitle="Forecast, demanda real e inventario en la misma lectura operacional."
             title="Inventario vs demanda"
           >
-            <DemandChart data={getDemandSeries(salesRecords)} />
+            <DemandChart data={getDemandSeries(filteredRecords)} />
           </ChartCard>
-        </section>
+          </section>
+        ) : (
+          <section className="empty-state">
+            <Icon name="chart" />
+            <h2>No hay datos para graficar</h2>
+            <p>
+              {hasSourceRecords
+                ? 'Cambia o limpia los filtros para volver a mostrar registros.'
+                : 'Configura Firebase y carga datos para alimentar el dashboard.'}
+            </p>
+          </section>
+        )}
 
-        <DataTable records={salesRecords} />
-        <DatasetInfo />
+        <DataTable records={filteredRecords} />
       </main>
     </div>
   )

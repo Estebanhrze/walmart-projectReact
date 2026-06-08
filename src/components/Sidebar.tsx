@@ -29,12 +29,6 @@ export function Sidebar() {
           </a>
         ))}
       </nav>
-
-      <div className="sidebar-note">
-        <span>Estado</span>
-        <strong>Mock visual</strong>
-        <p>Listo para conectar Firebase o CSV.</p>
-      </div>
     </aside>
   )
 }

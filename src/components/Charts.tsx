@@ -5,25 +5,44 @@ const maxValue = (series: SeriesPoint[]) => Math.max(...series.map((item) => ite
 
 export function TrendChart({ data }: { data: SeriesPoint[] }) {
   const max = maxValue(data)
-  const width = 680
-  const height = 240
+  const width = 720
+  const height = 270
+  const margin = { top: 22, right: 42, bottom: 44, left: 42 }
+  const plotWidth = width - margin.left - margin.right
+  const plotHeight = height - margin.top - margin.bottom
+  const baseline = margin.top + plotHeight
   const points = data.map((item, index) => {
-    const x = data.length === 1 ? width / 2 : (index / (data.length - 1)) * width
-    const y = height - (item.value / max) * 180 - 28
+    const x = data.length === 1 ? width / 2 : margin.left + (index / (data.length - 1)) * plotWidth
+    const y = baseline - (item.value / max) * (plotHeight - 18)
     return { ...item, x, y }
   })
   const path = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ')
-  const area = `${path} L ${points.at(-1)?.x ?? 0} ${height} L ${points[0]?.x ?? 0} ${height} Z`
+  const area = `${path} L ${points.at(-1)?.x ?? margin.left} ${baseline} L ${points[0]?.x ?? margin.left} ${baseline} Z`
+  const gridLines = [0.25, 0.5, 0.75, 1].map((ratio) => baseline - ratio * plotHeight)
 
   return (
     <div className="trend-chart">
       <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Linea de tendencia de ventas">
+        <defs>
+          <linearGradient id="trendFill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#0071ce" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="#0071ce" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        {gridLines.map((y) => (
+          <path className="trend-gridline" d={`M ${margin.left} ${y} H ${width - margin.right}`} key={y} />
+        ))}
+        <path className="trend-axis" d={`M ${margin.left} ${baseline} H ${width - margin.right}`} />
         <path className="trend-area" d={area} />
         <path className="trend-line" d={path} />
         {points.map((point) => (
           <g key={point.label}>
+            <path className="trend-marker-line" d={`M ${point.x} ${point.y + 8} V ${baseline}`} />
             <circle cx={point.x} cy={point.y} r="5" />
-            <text x={point.x} y={height - 5}>{point.label}</text>
+            <text className="trend-value" x={point.x} y={point.y - 12}>
+              {formatCompactCurrency(point.value)}
+            </text>
+            <text className="trend-month" x={point.x} y={height - 11}>{point.label}</text>
           </g>
         ))}
       </svg>
