@@ -1,4 +1,4 @@
-import type { SalesRecord } from '../data/mockSales'
+import type { SalesRecord } from '../types/sales'
 import { formatCurrency, getRevenue } from '../utils/analytics'
 
 type DataTableProps = {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import type { SalesRecord } from '../data/mockSales'
 import { firebaseConfigStatus, isFirebaseConfigured } from '../firebase'
 import { fetchSalesRecords } from '../services/salesService'
+import type { SalesRecord } from '../types/sales'
 
 export function useSalesRecords() {
   const [records, setRecords] = useState<SalesRecord[]>([])

@@ -271,7 +271,6 @@
 .filter-panel,
 .chart-card,
 .data-table-card,
-.dataset-info,
 .dashboard-status,
 .empty-state {
   border: 1px solid var(--line);
@@ -725,8 +724,7 @@
   background: var(--yellow);
 }
 
-.data-table-card,
-.dataset-info {
+.data-table-card {
   margin-top: 16px;
   padding: 16px;
 }
@@ -799,41 +797,6 @@ th {
 td {
   color: var(--ink);
   font-size: 14px;
-}
-
-.dataset-info {
-  display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(280px, 1fr);
-  align-items: center;
-  gap: 18px;
-}
-
-.dataset-info h2 {
-  margin: 4px 0 8px;
-  font-size: 20px;
-}
-
-.dataset-info p {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.55;
-}
-
-.field-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-.field-tags span {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 8px 10px;
-  color: var(--blue-dark);
-  background: #f5f9ff;
-  font-size: 12px;
-  font-weight: 800;
 }
 
 @media (max-width: 1240px) {
@@ -981,17 +944,12 @@ td {
     min-height: auto;
   }
 
-  .donut-wrap,
-  .dataset-info {
+  .donut-wrap {
     grid-template-columns: 1fr;
   }
 
   .donut {
     margin: 0 auto;
-  }
-
-  .field-tags {
-    justify-content: flex-start;
   }
 
   .chart-caption {

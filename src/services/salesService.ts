@@ -1,6 +1,5 @@
 import { collection, getDocs, orderBy, query, Timestamp } from 'firebase/firestore'
 import { get, ref } from 'firebase/database'
-import type { SalesRecord } from '../data/mockSales'
 import {
   db,
   firebaseSource,
@@ -8,6 +7,7 @@ import {
   realtimeDatabasePath,
   realtimeDb,
 } from '../firebase'
+import type { SalesRecord } from '../types/sales'
 
 type FirestoreValue = string | number | boolean | Timestamp | null | undefined
 type FirestoreSalesRecord = Record<string, FirestoreValue>

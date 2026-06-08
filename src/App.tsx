@@ -8,8 +8,8 @@ import { Header } from './components/Header'
 import { Icon } from './components/Icon'
 import { KpiCard } from './components/KpiCard'
 import { Sidebar } from './components/Sidebar'
-import type { SalesRecord } from './data/mockSales'
 import { useSalesRecords } from './hooks/useSalesRecords'
+import type { SalesRecord } from './types/sales'
 import {
   averageTicket,
   formatCompactCurrency,
