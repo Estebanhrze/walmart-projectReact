@@ -4,20 +4,20 @@ export function Header() {
   return (
     <header className="dashboard-header">
       <div className="mobile-bar">
-        <button className="icon-button" type="button" aria-label="Abrir menu">
+        <button className="icon-button" type="button" aria-label="Abrir menú">
           <Icon name="menu" />
         </button>
-        <strong>Walmart Analytics</strong>
+        <strong>Analítica Walmart</strong>
         <button className="icon-button" type="button" aria-label="Buscar">
           <Icon name="search" />
         </button>
       </div>
 
       <div className="header-copy">
-        <span className="eyebrow">Dashboard comercial</span>
-        <h1>Dashboard de Ventas Walmart</h1>
+        <span className="eyebrow">Panel comercial</span>
+        <h1>Panel de Ventas Walmart</h1>
         <p>
-          Analisis visual de ingresos, metodos de pago, clientes, productos,
+          Análisis visual de ingresos, métodos de pago, clientes, productos,
           ubicaciones y demanda operativa.
         </p>
       </div>

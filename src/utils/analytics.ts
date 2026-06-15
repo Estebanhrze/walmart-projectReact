@@ -21,14 +21,14 @@ export type DemandPoint = {
 export const getRevenue = (record: SalesRecord) => record.quantity_sold * record.unit_price
 
 export const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('en-US', {
+  new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'USD',
     maximumFractionDigits: 0,
   }).format(value)
 
 export const formatCompactCurrency = (value: number) =>
-  new Intl.NumberFormat('en-US', {
+  new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'USD',
     notation: 'compact',
@@ -36,11 +36,11 @@ export const formatCompactCurrency = (value: number) =>
   }).format(value)
 
 export const formatNumber = (value: number) =>
-  new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value)
+  new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(value)
 
-const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'short' })
+const monthLabels = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic']
 
-export const getMonthLabel = (dateValue: string) => monthFormatter.format(new Date(dateValue))
+export const getMonthLabel = (dateValue: string) => monthLabels[new Date(dateValue).getMonth()] ?? 's/f'
 
 export const sumRevenue = (records: SalesRecord[]) =>
   records.reduce((total, record) => total + getRevenue(record), 0)
@@ -85,7 +85,7 @@ export const getTrendSeries = (records: SalesRecord[]): SeriesPoint[] => {
     return map
   }, new Map())
 
-  const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const monthOrder = monthLabels
 
   return Array.from(grouped, ([label, value]) => ({ label, value })).sort(
     (a, b) => monthOrder.indexOf(a.label) - monthOrder.indexOf(b.label),

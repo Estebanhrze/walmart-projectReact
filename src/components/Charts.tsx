@@ -1,5 +1,6 @@
 import type { DemandPoint, ScatterPoint, SeriesPoint } from '../utils/analytics'
 import { formatCompactCurrency, formatCurrency, formatNumber } from '../utils/analytics'
+import { translateValue } from '../utils/translations'
 
 const maxValue = (series: SeriesPoint[]) => Math.max(...series.map((item) => item.value), 1)
 
@@ -22,7 +23,7 @@ export function TrendChart({ data }: { data: SeriesPoint[] }) {
 
   return (
     <div className="trend-chart">
-      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Linea de tendencia de ventas">
+      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Línea de tendencia de ventas">
         <defs>
           <linearGradient id="trendFill" x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="#0071ce" stopOpacity="0.22" />
@@ -48,7 +49,7 @@ export function TrendChart({ data }: { data: SeriesPoint[] }) {
       </svg>
       <div className="chart-caption">
         <strong>{formatCurrency(data.reduce((total, item) => total + item.value, 0))}</strong>
-        <span>Ingresos mock calculados como quantity_sold x unit_price</span>
+        <span>Ingresos calculados como cantidad vendida por precio unitario</span>
       </div>
     </div>
   )
@@ -62,7 +63,7 @@ export function BarChart({ data, compact = false }: { data: SeriesPoint[]; compa
       {data.map((item) => (
         <div className="bar-row" key={item.label}>
           <div className="bar-label">
-            <span>{item.label}</span>
+            <span>{translateValue(item.label)}</span>
             <strong>{formatCompactCurrency(item.value)}</strong>
           </div>
           <div className="bar-track" aria-hidden="true">
@@ -89,7 +90,7 @@ export function DonutChart({ data }: { data: SeriesPoint[] }) {
 
   return (
     <div className="donut-wrap">
-      <svg className="donut" viewBox="0 0 42 42" role="img" aria-label="Participacion de metodos de pago">
+      <svg className="donut" viewBox="0 0 42 42" role="img" aria-label="Participación de métodos de pago">
         <circle className="donut-base" cx="21" cy="21" r="15.9" />
         {segments.map((item, index) => (
           <circle
@@ -109,7 +110,7 @@ export function DonutChart({ data }: { data: SeriesPoint[] }) {
         {data.map((item, index) => (
           <div className="legend-item" key={item.label}>
             <span className={`legend-dot segment-${index}`} />
-            <span>{item.label}</span>
+            <span>{translateValue(item.label)}</span>
             <strong>{formatNumber(item.value)}</strong>
           </div>
         ))}
@@ -125,9 +126,9 @@ export function CustomerSplitChart({ data }: { data: SeriesPoint[] }) {
     <div className="customer-split">
       {data.map((item, index) => (
         <div className="split-card" key={item.label}>
-          <span className={`split-avatar segment-${index}`}>{item.label.charAt(0)}</span>
+          <span className={`split-avatar segment-${index}`}>{translateValue(item.label).charAt(0)}</span>
           <div>
-            <strong>{item.label}</strong>
+            <strong>{translateValue(item.label)}</strong>
             <p>{formatCompactCurrency(item.value)} en ingresos</p>
           </div>
           <div className="mini-meter" aria-hidden="true">
@@ -140,26 +141,78 @@ export function CustomerSplitChart({ data }: { data: SeriesPoint[] }) {
 }
 
 export function ScatterChart({ data }: { data: ScatterPoint[] }) {
-  const maxX = Math.max(...data.map((point) => point.x), 1)
-  const maxY = Math.max(...data.map((point) => point.y), 1)
+  const grouped = Array.from(
+    data.reduce<Map<number, number[]>>((map, point) => {
+      map.set(point.x, [...(map.get(point.x) ?? []), point.y])
+      return map
+    }, new Map()),
+    ([quantity, values]) => ({
+      average: values.reduce((total, value) => total + value, 0) / values.length,
+      count: values.length,
+      max: Math.max(...values),
+      min: Math.min(...values),
+      quantity,
+    }),
+  ).sort((a, b) => a.quantity - b.quantity)
+  const width = 480
+  const height = 280
+  const margin = { top: 24, right: 22, bottom: 48, left: 58 }
+  const plotWidth = width - margin.left - margin.right
+  const plotHeight = height - margin.top - margin.bottom
+  const baseline = margin.top + plotHeight
+  const minX = Math.min(...grouped.map((point) => point.quantity), 0)
+  const maxX = Math.max(...grouped.map((point) => point.quantity), 1)
+  const maxY = Math.max(...grouped.map((point) => point.max), 1)
+  const maxCount = Math.max(...grouped.map((point) => point.count), 1)
+  const xScale = (value: number) =>
+    margin.left + ((value - minX) / Math.max(maxX - minX, 1)) * plotWidth
+  const yScale = (value: number) => baseline - (value / maxY) * plotHeight
+  const averageLine = grouped
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${xScale(point.quantity)} ${yScale(point.average)}`)
+    .join(' ')
+  const gridValues = [0, 0.25, 0.5, 0.75, 1].map((ratio) => maxY * ratio)
 
   return (
     <div className="scatter-chart">
-      <svg viewBox="0 0 420 260" role="img" aria-label="Relacion entre cantidad vendida e ingresos">
-        <path className="axis" d="M42 18v198h336" />
-        <text className="axis-label" x="42" y="242">Cantidad</text>
-        <text className="axis-label" x="275" y="242">Revenue</text>
-        {data.map((point) => {
-          const x = 42 + (point.x / maxX) * 320
-          const y = 216 - (point.y / maxY) * 180
+      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Relación entre cantidad vendida e ingresos">
+        {gridValues.map((value) => {
+          const y = yScale(value)
+
           return (
-            <g key={`${point.label}-${point.x}`}>
-              <circle cx={x} cy={y} r="7" />
-              <text x={x + 9} y={y + 4}>{point.label}</text>
+            <g key={value}>
+              <path className="scatter-gridline" d={`M ${margin.left} ${y} H ${width - margin.right}`} />
+              <text className="scatter-y-label" x={margin.left - 9} y={y + 4}>
+                {formatCompactCurrency(value)}
+              </text>
             </g>
           )
         })}
+        <path className="axis" d={`M ${margin.left} ${margin.top} V ${baseline} H ${width - margin.right}`} />
+        <path className="scatter-average-line" d={averageLine} />
+        {grouped.map((point) => {
+          const x = xScale(point.quantity)
+          const averageY = yScale(point.average)
+          const minY = yScale(point.min)
+          const maxPointY = yScale(point.max)
+          const radius = 5 + (point.count / maxCount) * 7
+
+          return (
+            <g key={point.quantity}>
+              <path className="scatter-range" d={`M ${x} ${maxPointY} V ${minY}`} />
+              <path className="scatter-range-cap" d={`M ${x - 5} ${maxPointY} H ${x + 5} M ${x - 5} ${minY} H ${x + 5}`} />
+              <circle className="scatter-average-dot" cx={x} cy={averageY} r={radius} />
+              <text className="scatter-count" x={x} y={averageY - radius - 7}>{formatNumber(point.count)}</text>
+              <text className="scatter-x-label" x={x} y={baseline + 21}>{point.quantity}</text>
+            </g>
+          )
+        })}
+        <text className="axis-title" x={margin.left + plotWidth / 2} y={height - 5}>Cantidad vendida</text>
       </svg>
+      <div className="scatter-legend">
+        <span><i className="legend-average" /> Promedio de ingresos</span>
+        <span><i className="legend-range" /> Rango mínimo-máximo</span>
+        <span>El número sobre cada punto indica transacciones</span>
+      </div>
     </div>
   )
 }
@@ -180,7 +233,7 @@ export function DemandChart({ data }: { data: DemandPoint[] }) {
         </div>
       ))}
       <div className="demand-legend">
-        <span><i /> Forecast</span>
+        <span><i /> Pronóstico</span>
         <span><b /> Actual</span>
         <span><em /> Inventario</span>
       </div>

@@ -1,4 +1,5 @@
 import { Icon } from './Icon'
+import { translateValue } from '../utils/translations'
 
 export type DashboardFilters = {
   category: string
@@ -33,7 +34,7 @@ export function FilterPanel({ filters, onApply, onChange, onReset, options }: Fi
         <Icon name="filter" />
         <div>
           <strong>Filtros</strong>
-          <span>Vista visual preparada para datos conectados</span>
+          <span>Explora los datos conectados</span>
         </div>
       </div>
 
@@ -45,40 +46,40 @@ export function FilterPanel({ filters, onApply, onChange, onReset, options }: Fi
             onChange={(event) => onChange('dateRange', event.target.value)}
           >
             {options.dateRange.map((option) => (
-              <option key={option}>{option}</option>
+              <option key={option} value={option}>{translateValue(option)}</option>
             ))}
           </select>
         </label>
         <label>
-          Metodo de pago
+          Método de pago
           <select
             value={filters.payment_method}
             onChange={(event) => onChange('payment_method', event.target.value)}
           >
             {options.payment_method.map((option) => (
-              <option key={option}>{option}</option>
+              <option key={option} value={option}>{translateValue(option)}</option>
             ))}
           </select>
         </label>
         <label>
-          Genero
+          Género
           <select
             value={filters.customer_gender}
             onChange={(event) => onChange('customer_gender', event.target.value)}
           >
             {options.customer_gender.map((option) => (
-              <option key={option}>{option}</option>
+              <option key={option} value={option}>{translateValue(option)}</option>
             ))}
           </select>
         </label>
         <label>
-          Categoria
+          Categoría
           <select
             value={filters.category}
             onChange={(event) => onChange('category', event.target.value)}
           >
             {options.category.map((option) => (
-              <option key={option}>{option}</option>
+              <option key={option} value={option}>{translateValue(option)}</option>
             ))}
           </select>
         </label>
@@ -89,7 +90,7 @@ export function FilterPanel({ filters, onApply, onChange, onReset, options }: Fi
             onChange={(event) => onChange('customer_loyalty_level', event.target.value)}
           >
             {options.customer_loyalty_level.map((option) => (
-              <option key={option}>{option}</option>
+              <option key={option} value={option}>{translateValue(option)}</option>
             ))}
           </select>
         </label>
@@ -100,7 +101,7 @@ export function FilterPanel({ filters, onApply, onChange, onReset, options }: Fi
             onChange={(event) => onChange('store_location', event.target.value)}
           >
             {options.store_location.map((option) => (
-              <option key={option}>{option}</option>
+              <option key={option} value={option}>{translateValue(option)}</option>
             ))}
           </select>
         </label>

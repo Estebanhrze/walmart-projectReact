@@ -31,5 +31,5 @@ export const firestoreCollection = import.meta.env.VITE_FIREBASE_COLLECTION ?? '
 export const realtimeDatabasePath = import.meta.env.VITE_FIREBASE_DATABASE_PATH ?? 'sales_transactions'
 
 export const firebaseConfigStatus = isFirebaseConfigured
-  ? `Conectado a Firebase ${firebaseSource === 'realtime' ? 'Realtime Database' : 'Firestore'}`
+  ? `Conectado a ${firebaseSource === 'realtime' ? 'la base de datos en tiempo real de Firebase' : 'Firestore'}`
   : `Faltan variables Firebase: ${missingKeys.join(', ')}`

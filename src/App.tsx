@@ -7,7 +7,7 @@ import { FilterPanel, type DashboardFilterOptions, type DashboardFilters } from 
 import { Header } from './components/Header'
 import { Icon } from './components/Icon'
 import { KpiCard } from './components/KpiCard'
-import { Sidebar } from './components/Sidebar'
+import { Sidebar, type DashboardView } from './components/Sidebar'
 import { useSalesRecords } from './hooks/useSalesRecords'
 import type { SalesRecord } from './types/sales'
 import {
@@ -24,6 +24,7 @@ import {
   groupRevenueBy,
   sumRevenue,
 } from './utils/analytics'
+import { translateValue } from './utils/translations'
 
 const defaultFilters: DashboardFilters = {
   category: 'All',
@@ -34,6 +35,37 @@ const defaultFilters: DashboardFilters = {
   store_location: 'All',
 }
 
+const viewContent: Record<DashboardView, { title: string; description: string }> = {
+  inicio: {
+    title: 'Resumen general',
+    description: 'Panorama completo del rendimiento comercial y operativo.',
+  },
+  ventas: {
+    title: 'Ventas generales',
+    description: 'Ingresos, ticket promedio, evolución mensual y relación entre cantidad e ingresos.',
+  },
+  pagos: {
+    title: 'Métodos de pago',
+    description: 'Frecuencia de uso e ingresos generados por cada método de pago.',
+  },
+  clientes: {
+    title: 'Clientes',
+    description: 'Comparación de ingresos por género y comportamiento de compra.',
+  },
+  productos: {
+    title: 'Productos',
+    description: 'Categorías con mayor aporte a los ingresos registrados.',
+  },
+  sucursales: {
+    title: 'Sucursales',
+    description: 'Rendimiento comercial por ubicación y situación de inventario.',
+  },
+  demanda: {
+    title: 'Demanda',
+    description: 'Comparación entre pronóstico, demanda real, inventario y agotamientos.',
+  },
+}
+
 const getUniqueOptions = <K extends keyof SalesRecord>(records: SalesRecord[], key: K) => [
   'All',
   ...Array.from(new Set(records.map((record) => String(record[key])).filter(Boolean))).sort(),
@@ -42,22 +74,10 @@ const getUniqueOptions = <K extends keyof SalesRecord>(records: SalesRecord[], k
 const getQuarter = (dateValue: string) => {
   const month = new Date(dateValue).getMonth()
 
-  if (!Number.isFinite(month)) {
-    return ''
-  }
-
-  if (month >= 0 && month <= 2) {
-    return 'Q1 2024'
-  }
-
-  if (month >= 3 && month <= 5) {
-    return 'Q2 2024'
-  }
-
-  if (month >= 6 && month <= 8) {
-    return 'Q3 2024'
-  }
-
+  if (!Number.isFinite(month)) return ''
+  if (month <= 2) return 'Q1 2024'
+  if (month <= 5) return 'Q2 2024'
+  if (month <= 8) return 'Q3 2024'
   return 'Q4 2024'
 }
 
@@ -83,14 +103,15 @@ const applyDashboardFilters = (records: SalesRecord[], filters: DashboardFilters
 
 const getActiveFilterLabels = (filters: DashboardFilters) =>
   [
-    filters.dateRange,
+    translateValue(filters.dateRange),
     filters.store_location === 'All' ? 'Todas las ciudades' : filters.store_location,
-    filters.payment_method === 'All' ? 'Todos los pagos' : filters.payment_method,
-    filters.category === 'All' ? 'Todas las categorias' : filters.category,
+    filters.payment_method === 'All' ? 'Todos los pagos' : translateValue(filters.payment_method),
+    filters.category === 'All' ? 'Todas las categorías' : translateValue(filters.category),
   ].filter(Boolean)
 
 function App() {
   const { error, isLoading, records: salesRecords, status } = useSalesRecords()
+  const [activeView, setActiveView] = useState<DashboardView>('inicio')
   const [draftFilters, setDraftFilters] = useState<DashboardFilters>(defaultFilters)
   const [appliedFilters, setAppliedFilters] = useState<DashboardFilters>(defaultFilters)
   const filteredRecords = useMemo(
@@ -118,13 +139,10 @@ function App() {
   const genderRevenue = groupRevenueBy(filteredRecords, 'customer_gender')
   const storeRevenue = groupRevenueBy(filteredRecords, 'store_location')
   const demandHealth = getDemandHealth(filteredRecords)
+  const isVisible = (...views: DashboardView[]) => activeView === 'inicio' || views.includes(activeView)
 
   const handleFilterChange = (key: keyof DashboardFilters, value: string) => {
     setDraftFilters((currentFilters) => ({ ...currentFilters, [key]: value }))
-  }
-
-  const handleApplyFilters = () => {
-    setAppliedFilters(draftFilters)
   }
 
   const handleResetFilters = () => {
@@ -132,145 +150,155 @@ function App() {
     setAppliedFilters(defaultFilters)
   }
 
+  const handleViewChange = (view: DashboardView) => {
+    setActiveView(view)
+    window.scrollTo({ behavior: 'smooth', top: 0 })
+  }
+
   return (
     <div className="app-shell" id="dashboard">
-      <Sidebar />
+      <Sidebar activeView={activeView} onViewChange={handleViewChange} />
 
       <main className="dashboard-main">
         <Header />
 
+        <section className="view-intro">
+          <div>
+            <span className="eyebrow">Sección actual</span>
+            <h2>{viewContent[activeView].title}</h2>
+            <p>{viewContent[activeView].description}</p>
+          </div>
+          <span className="view-result-count">{formatNumber(filteredRecords.length)} registros visibles</span>
+        </section>
+
         <section className="active-filter-strip" aria-label="Filtros activos">
-          {activeFilterLabels.map((label) => (
-            <span key={label}>{label}</span>
-          ))}
+          {activeFilterLabels.map((label) => <span key={label}>{label}</span>)}
           <button type="button">{formatNumber(filteredRecords.length)} resultados</button>
         </section>
 
-        <section className="kpi-grid" aria-label="Indicadores principales">
-          <KpiCard
-            detail="quantity_sold x unit_price"
-            icon={<Icon name="chart" />}
-            label="Ventas totales"
-            tone="blue"
-            value={formatCurrency(totalRevenue)}
-          />
-          <KpiCard
-            detail={`${formatNumber(filteredRecords.length)} de ${formatNumber(salesRecords.length)} transacciones`}
-            icon={<Icon name="bar" />}
-            label="Ticket promedio"
-            tone="green"
-            value={formatCurrency(averageTicket(filteredRecords))}
-          />
-          <KpiCard
-            detail="Mayor frecuencia de uso"
-            icon={<Icon name="wallet" />}
-            label="Pago principal"
-            tone="yellow"
-            value={getTopLabel(paymentUsage)}
-          />
-          <KpiCard
-            detail={formatCompactCurrency(categoryRevenue[0]?.value ?? 0)}
-            icon={<Icon name="box" />}
-            label="Categoria top"
-            tone="blue"
-            value={getTopLabel(categoryRevenue)}
-          />
-          <KpiCard
-            detail={formatCompactCurrency(storeRevenue[0]?.value ?? 0)}
-            icon={<Icon name="shop" />}
-            label="Sucursal lider"
-            tone="green"
-            value={getTopLabel(storeRevenue)}
-          />
-          <KpiCard
-            detail={`${demandHealth.stockoutCount} alertas de stockout`}
-            icon={<Icon name="filter" />}
-            label="Demanda"
-            tone="coral"
-            value={`${demandHealth.variance > 0 ? '+' : ''}${demandHealth.variance.toFixed(1)}%`}
-          />
+        <section className="kpi-grid" aria-label={`Indicadores de ${viewContent[activeView].title}`}>
+          {isVisible('ventas') && (
+            <KpiCard
+              detail="cantidad vendida x precio unitario"
+              icon={<Icon name="chart" />}
+              label="Ventas totales"
+              tone="blue"
+              value={formatCurrency(totalRevenue)}
+            />
+          )}
+          {isVisible('ventas', 'clientes') && (
+            <KpiCard
+              detail={`${formatNumber(filteredRecords.length)} de ${formatNumber(salesRecords.length)} transacciones`}
+              icon={<Icon name="bar" />}
+              label="Ticket promedio"
+              tone="green"
+              value={formatCurrency(averageTicket(filteredRecords))}
+            />
+          )}
+          {isVisible('pagos') && (
+            <KpiCard
+              detail="Mayor frecuencia de uso"
+              icon={<Icon name="wallet" />}
+              label="Pago principal"
+              tone="yellow"
+              value={translateValue(getTopLabel(paymentUsage))}
+            />
+          )}
+          {isVisible('productos') && (
+            <KpiCard
+              detail={formatCompactCurrency(categoryRevenue[0]?.value ?? 0)}
+              icon={<Icon name="box" />}
+              label="Categoría líder"
+              tone="blue"
+              value={translateValue(getTopLabel(categoryRevenue))}
+            />
+          )}
+          {isVisible('sucursales') && (
+            <KpiCard
+              detail={formatCompactCurrency(storeRevenue[0]?.value ?? 0)}
+              icon={<Icon name="shop" />}
+              label="Sucursal líder"
+              tone="green"
+              value={getTopLabel(storeRevenue)}
+            />
+          )}
+          {isVisible('demanda', 'sucursales') && (
+            <KpiCard
+              detail={`${demandHealth.stockoutCount} alertas de agotamiento`}
+              icon={<Icon name="filter" />}
+              label="Demanda"
+              tone="coral"
+              value={`${demandHealth.variance > 0 ? '+' : ''}${demandHealth.variance.toFixed(1)}%`}
+            />
+          )}
         </section>
 
-        <section
-          className={error ? 'dashboard-status error' : 'dashboard-status'}
-          aria-live="polite"
-        >
+        <section className={error ? 'dashboard-status error' : 'dashboard-status'} aria-live="polite">
           <strong>{isLoading ? 'Cargando datos desde Firebase...' : status}</strong>
           <span>
             {error ??
               (hasSourceRecords
                 ? `${formatNumber(salesRecords.length)} registros cargados; ${formatNumber(filteredRecords.length)} visibles con filtros.`
-                : 'La coleccion sales_transactions no tiene documentos para visualizar.')}
+                : 'La fuente de Firebase no tiene registros para visualizar.')}
           </span>
         </section>
 
         <FilterPanel
           filters={draftFilters}
-          onApply={handleApplyFilters}
+          onApply={() => setAppliedFilters(draftFilters)}
           onChange={handleFilterChange}
           onReset={handleResetFilters}
           options={filterOptions}
         />
 
         {hasFilteredRecords ? (
-          <section className="analytics-grid">
-          <ChartCard
-            className="wide"
-            subtitle="Ingreso mensual calculado desde documentos de Firestore."
-            title="Evolucion de ventas"
-          >
-            <TrendChart data={getTrendSeries(filteredRecords)} />
-          </ChartCard>
+          <section className={activeView === 'inicio' ? 'analytics-grid' : 'analytics-grid focused'}>
+            {isVisible('ventas') && (
+              <ChartCard className="wide" subtitle="Ingreso mensual" title="Evolución de ventas">
+                <TrendChart data={getTrendSeries(filteredRecords)} />
+              </ChartCard>
+            )}
 
-          <ChartCard
-            subtitle="Compara cuanto revenue genera cada forma de pago."
-            title="Ventas por metodo de pago"
-          >
-            <BarChart data={paymentRevenue} />
-          </ChartCard>
+            {isVisible('pagos') && (
+              <>
+                <ChartCard subtitle="" title="Ventas por método de pago">
+                  <BarChart data={paymentRevenue} />
+                </ChartCard>
+                <ChartCard subtitle="" title="Método de pago más usado">
+                  <DonutChart data={paymentUsage} />
+                </ChartCard>
+              </>
+            )}
 
-          <ChartCard
-            subtitle="Frecuencia de uso de efectivo, tarjeta y billetera digital."
-            title="Metodo de pago mas usado"
-          >
-            <DonutChart data={paymentUsage} />
-          </ChartCard>
+            {isVisible('productos') && (
+              <ChartCard subtitle="" title="Ventas por categoría">
+                <BarChart compact data={categoryRevenue.slice(0, 6)} />
+              </ChartCard>
+            )}
 
-          <ChartCard
-            subtitle="Ranking horizontal de lineas de producto."
-            title="Ventas por categoria"
-          >
-            <BarChart compact data={categoryRevenue.slice(0, 6)} />
-          </ChartCard>
+            {isVisible('clientes') && (
+              <ChartCard subtitle="" title="Ingresos por género">
+                <CustomerSplitChart data={genderRevenue} />
+              </ChartCard>
+            )}
 
-          <ChartCard
-            subtitle="Lectura preparada para comparar grupos de clientes."
-            title="Customer & Demand"
-          >
-            <CustomerSplitChart data={genderRevenue} />
-          </ChartCard>
+            {isVisible('sucursales') && (
+              <ChartCard subtitle="" title="Ventas por ubicación">
+                <BarChart compact data={storeRevenue.slice(0, 6)} />
+              </ChartCard>
+            )}
 
-          <ChartCard
-            subtitle="Rendimiento por ciudad o sucursal."
-            title="Ventas por ubicacion"
-          >
-            <BarChart compact data={storeRevenue.slice(0, 6)} />
-          </ChartCard>
+            {isVisible('ventas', 'clientes') && (
+              <ChartCard subtitle="" title="Cantidad vs ingresos">
+                <ScatterChart data={getScatterSeries(filteredRecords)} />
+              </ChartCard>
+            )}
 
-          <ChartCard
-            subtitle="Relacion entre unidades compradas e ingreso generado."
-            title="Cantidad vs revenue"
-          >
-            <ScatterChart data={getScatterSeries(filteredRecords)} />
-          </ChartCard>
-
-          <ChartCard
-            className="wide"
-            subtitle="Forecast, demanda real e inventario en la misma lectura operacional."
-            title="Inventario vs demanda"
-          >
-            <DemandChart data={getDemandSeries(filteredRecords)} />
-          </ChartCard>
+            {isVisible('demanda', 'sucursales') && (
+              <ChartCard className={activeView === 'inicio' ? 'wide' : ''} subtitle="" title="Inventario vs demanda">
+                <DemandChart data={getDemandSeries(filteredRecords)} />
+              </ChartCard>
+            )}
           </section>
         ) : (
           <section className="empty-state">
@@ -279,7 +307,7 @@ function App() {
             <p>
               {hasSourceRecords
                 ? 'Cambia o limpia los filtros para volver a mostrar registros.'
-                : 'Configura Firebase y carga datos para alimentar el dashboard.'}
+                : 'Configura Firebase y carga datos para alimentar el panel.'}
             </p>
           </section>
         )}

@@ -81,19 +81,19 @@ const normalizePayment = (value: unknown): SalesRecord['payment_method'] => {
 
 const mapFirebaseRecord = (data: FirestoreSalesRecord | UnknownSalesRecord): SalesRecord => ({
   transaction_id: toNumber(data.transaction_id),
-  product_name: toStringValue(data.product_name, 'Unknown product'),
-  category: toStringValue(data.category, 'Uncategorized'),
+  product_name: toStringValue(data.product_name, 'Producto desconocido'),
+  category: toStringValue(data.category, 'Sin categoría'),
   quantity_sold: toNumber(data.quantity_sold),
   unit_price: toNumber(data.unit_price),
   transaction_date: toDateString(data.transaction_date),
   store_id: toNumber(data.store_id),
-  store_location: toStringValue(data.store_location, 'Unknown store'),
+  store_location: toStringValue(data.store_location, 'Tienda desconocida'),
   inventory_level: toNumber(data.inventory_level),
   customer_gender: normalizeGender(data.customer_gender),
   customer_loyalty_level: normalizeLoyalty(data.customer_loyalty_level),
   payment_method: normalizePayment(data.payment_method),
   promotion_applied: toBoolean(data.promotion_applied),
-  weekday: toStringValue(data.weekday, 'Unknown'),
+  weekday: toStringValue(data.weekday, 'Desconocido'),
   stockout_indicator: toBoolean(data.stockout_indicator),
   forecasted_demand: toNumber(data.forecasted_demand),
   actual_demand: toNumber(data.actual_demand),
@@ -156,7 +156,7 @@ async function fetchFirestoreSalesRecords() {
 
 async function fetchRealtimeSalesRecords() {
   if (!realtimeDb) {
-    throw new Error('Falta VITE_FIREBASE_DATABASE_URL para leer Realtime Database.')
+    throw new Error('Falta VITE_FIREBASE_DATABASE_URL para leer la base de datos en tiempo real.')
   }
 
   const snapshot = await get(ref(realtimeDb, realtimeDatabasePath))
