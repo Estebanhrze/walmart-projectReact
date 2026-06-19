@@ -6,20 +6,27 @@ const maxValue = (series: SeriesPoint[]) => Math.max(...series.map((item) => ite
 
 export function TrendChart({ data }: { data: SeriesPoint[] }) {
   const max = maxValue(data)
-  const width = 720
-  const height = 270
-  const margin = { top: 22, right: 42, bottom: 44, left: 42 }
+  const chartMax = max * 1.12
+  const width = 760
+  const height = 290
+  const margin = { top: 36, right: 50, bottom: 44, left: 46 }
   const plotWidth = width - margin.left - margin.right
   const plotHeight = height - margin.top - margin.bottom
   const baseline = margin.top + plotHeight
   const points = data.map((item, index) => {
     const x = data.length === 1 ? width / 2 : margin.left + (index / (data.length - 1)) * plotWidth
-    const y = baseline - (item.value / max) * (plotHeight - 18)
+    const y = baseline - (item.value / chartMax) * plotHeight
     return { ...item, x, y }
   })
-  const path = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ')
+  const path = points.reduce((line, point, index) => {
+    if (index === 0) return `M ${point.x} ${point.y}`
+
+    const previous = points[index - 1]
+    const controlX = (previous.x + point.x) / 2
+
+    return `${line} C ${controlX} ${previous.y}, ${controlX} ${point.y}, ${point.x} ${point.y}`
+  }, '')
   const area = `${path} L ${points.at(-1)?.x ?? margin.left} ${baseline} L ${points[0]?.x ?? margin.left} ${baseline} Z`
-  const gridLines = [0.25, 0.5, 0.75, 1].map((ratio) => baseline - ratio * plotHeight)
 
   return (
     <div className="trend-chart">
@@ -30,15 +37,11 @@ export function TrendChart({ data }: { data: SeriesPoint[] }) {
             <stop offset="100%" stopColor="#0071ce" stopOpacity="0.02" />
           </linearGradient>
         </defs>
-        {gridLines.map((y) => (
-          <path className="trend-gridline" d={`M ${margin.left} ${y} H ${width - margin.right}`} key={y} />
-        ))}
         <path className="trend-axis" d={`M ${margin.left} ${baseline} H ${width - margin.right}`} />
         <path className="trend-area" d={area} />
         <path className="trend-line" d={path} />
         {points.map((point) => (
           <g key={point.label}>
-            <path className="trend-marker-line" d={`M ${point.x} ${point.y + 8} V ${baseline}`} />
             <circle cx={point.x} cy={point.y} r="5" />
             <text className="trend-value" x={point.x} y={point.y - 12}>
               {formatCompactCurrency(point.value)}

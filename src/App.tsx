@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import './App.css'
 import { BarChart, CustomerSplitChart, DemandChart, DonutChart, ScatterChart, TrendChart } from './components/Charts'
 import { ChartCard } from './components/ChartCard'
@@ -35,35 +35,14 @@ const defaultFilters: DashboardFilters = {
   store_location: 'All',
 }
 
-const viewContent: Record<DashboardView, { title: string; description: string }> = {
-  inicio: {
-    title: 'Resumen general',
-    description: 'Panorama completo del rendimiento comercial y operativo.',
-  },
-  ventas: {
-    title: 'Ventas generales',
-    description: 'Ingresos, ticket promedio, evolución mensual y relación entre cantidad e ingresos.',
-  },
-  pagos: {
-    title: 'Métodos de pago',
-    description: 'Frecuencia de uso e ingresos generados por cada método de pago.',
-  },
-  clientes: {
-    title: 'Clientes',
-    description: 'Comparación de ingresos por género y comportamiento de compra.',
-  },
-  productos: {
-    title: 'Productos',
-    description: 'Categorías con mayor aporte a los ingresos registrados.',
-  },
-  sucursales: {
-    title: 'Sucursales',
-    description: 'Rendimiento comercial por ubicación y situación de inventario.',
-  },
-  demanda: {
-    title: 'Demanda',
-    description: 'Comparación entre pronóstico, demanda real, inventario y agotamientos.',
-  },
+const viewTitle: Record<DashboardView, string> = {
+  clientes: 'Clientes',
+  demanda: 'Demanda',
+  inicio: 'Resumen general',
+  pagos: 'Métodos de pago',
+  productos: 'Productos',
+  sucursales: 'Sucursales',
+  ventas: 'Ventas generales',
 }
 
 const getUniqueOptions = <K extends keyof SalesRecord>(records: SalesRecord[], key: K) => [
@@ -162,24 +141,28 @@ function App() {
       <main className="dashboard-main">
         <Header />
 
-        <section className="view-intro">
-          <div>
-            <span className="eyebrow">Sección actual</span>
-            <h2>{viewContent[activeView].title}</h2>
-            <p>{viewContent[activeView].description}</p>
-          </div>
-          <span className="view-result-count">{formatNumber(filteredRecords.length)} registros visibles</span>
-        </section>
+        <div
+          aria-label={error ? 'Error de conexión' : isLoading ? 'Conectando a Firebase' : 'Conectado a Firebase'}
+          className={error ? 'connection-chip error' : isLoading ? 'connection-chip loading' : 'connection-chip'}
+          role="status"
+          title={
+            error ??
+            (hasSourceRecords
+              ? `${formatNumber(salesRecords.length)} registros cargados; ${formatNumber(filteredRecords.length)} visibles con filtros.`
+              : status)
+          }
+        >
+          <span />
+        </div>
 
         <section className="active-filter-strip" aria-label="Filtros activos">
           {activeFilterLabels.map((label) => <span key={label}>{label}</span>)}
           <button type="button">{formatNumber(filteredRecords.length)} resultados</button>
         </section>
 
-        <section className="kpi-grid" aria-label={`Indicadores de ${viewContent[activeView].title}`}>
+        <section className="kpi-grid" aria-label={`Indicadores de ${viewTitle[activeView]}`}>
           {isVisible('ventas') && (
             <KpiCard
-              detail="cantidad vendida x precio unitario"
               icon={<Icon name="chart" />}
               label="Ventas totales"
               tone="blue"
@@ -233,15 +216,6 @@ function App() {
           )}
         </section>
 
-        <section className={error ? 'dashboard-status error' : 'dashboard-status'} aria-live="polite">
-          <strong>{isLoading ? 'Cargando datos desde Firebase...' : status}</strong>
-          <span>
-            {error ??
-              (hasSourceRecords
-                ? `${formatNumber(salesRecords.length)} registros cargados; ${formatNumber(filteredRecords.length)} visibles con filtros.`
-                : 'La fuente de Firebase no tiene registros para visualizar.')}
-          </span>
-        </section>
 
         <FilterPanel
           filters={draftFilters}

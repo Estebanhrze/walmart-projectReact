@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 type KpiCardProps = {
   label: string
   value: string
-  detail: string
+  detail?: string
   tone?: 'blue' | 'green' | 'yellow' | 'coral'
   icon: ReactNode
 }
@@ -15,7 +15,7 @@ export function KpiCard({ label, value, detail, tone = 'blue', icon }: KpiCardPr
       <div>
         <span>{label}</span>
         <strong>{value}</strong>
-        <p>{detail}</p>
+        {detail ? <p>{detail}</p> : null}
       </div>
     </article>
   )
