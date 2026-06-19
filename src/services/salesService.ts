@@ -1,5 +1,5 @@
-import { collection, getDocs, orderBy, query, Timestamp } from 'firebase/firestore'
 import { get, ref } from 'firebase/database'
+import { collection, getDocs, orderBy, query, Timestamp } from 'firebase/firestore'
 import {
   db,
   firebaseSource,
@@ -39,7 +39,38 @@ const toBoolean = (value: unknown) => {
 }
 
 const toStringValue = (value: unknown, fallback: string) =>
-  typeof value === 'string' && value.trim().length > 0 ? value : fallback
+  typeof value === 'string' && value.trim().length > 0 ? value.trim() : fallback
+
+const normalizeLookupKey = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+
+const normalizeCategory = (value: unknown) => {
+  const category = toStringValue(value, 'Sin categoría')
+  const key = normalizeLookupKey(category)
+  const categoryMap: Record<string, string> = {
+    apparel: 'Apparel',
+    appliances: 'Appliances',
+    electronic: 'Electronics',
+    electronica: 'Electronics',
+    electronics: 'Electronics',
+    electrodomesticos: 'Appliances',
+    furniture: 'Furniture',
+    groceries: 'Groceries',
+    home: 'Home',
+    'home appliances': 'Appliances',
+    outdoor: 'Outdoor',
+    sports: 'Sports',
+    toys: 'Toys',
+  }
+
+  return categoryMap[key] ?? category
+}
 
 const toDateString = (value: unknown) => {
   if (value instanceof Timestamp) {
@@ -80,23 +111,23 @@ const normalizePayment = (value: unknown): SalesRecord['payment_method'] => {
 }
 
 const mapFirebaseRecord = (data: FirestoreSalesRecord | UnknownSalesRecord): SalesRecord => ({
-  transaction_id: toNumber(data.transaction_id),
-  product_name: toStringValue(data.product_name, 'Producto desconocido'),
-  category: toStringValue(data.category, 'Sin categoría'),
-  quantity_sold: toNumber(data.quantity_sold),
-  unit_price: toNumber(data.unit_price),
-  transaction_date: toDateString(data.transaction_date),
-  store_id: toNumber(data.store_id),
-  store_location: toStringValue(data.store_location, 'Tienda desconocida'),
-  inventory_level: toNumber(data.inventory_level),
+  actual_demand: toNumber(data.actual_demand),
+  category: normalizeCategory(data.category),
   customer_gender: normalizeGender(data.customer_gender),
   customer_loyalty_level: normalizeLoyalty(data.customer_loyalty_level),
-  payment_method: normalizePayment(data.payment_method),
-  promotion_applied: toBoolean(data.promotion_applied),
-  weekday: toStringValue(data.weekday, 'Desconocido'),
-  stockout_indicator: toBoolean(data.stockout_indicator),
   forecasted_demand: toNumber(data.forecasted_demand),
-  actual_demand: toNumber(data.actual_demand),
+  inventory_level: toNumber(data.inventory_level),
+  payment_method: normalizePayment(data.payment_method),
+  product_name: toStringValue(data.product_name, 'Producto desconocido'),
+  promotion_applied: toBoolean(data.promotion_applied),
+  quantity_sold: toNumber(data.quantity_sold),
+  stockout_indicator: toBoolean(data.stockout_indicator),
+  store_id: toNumber(data.store_id),
+  store_location: toStringValue(data.store_location, 'Tienda desconocida'),
+  transaction_date: toDateString(data.transaction_date),
+  transaction_id: toNumber(data.transaction_id),
+  unit_price: toNumber(data.unit_price),
+  weekday: toStringValue(data.weekday, 'Desconocido'),
 })
 
 const looksLikeSalesRecord = (value: unknown): value is UnknownSalesRecord => {

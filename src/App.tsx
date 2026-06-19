@@ -2,7 +2,7 @@
 import './App.css'
 import { BarChart, CustomerSplitChart, DemandChart, DonutChart, ScatterChart, TrendChart } from './components/Charts'
 import { ChartCard } from './components/ChartCard'
-import { DataTable } from './components/DataTable'
+import { DataTable, type TableMode } from './components/DataTable'
 import { FilterPanel, type DashboardFilterOptions, type DashboardFilters } from './components/FilterPanel'
 import { Header } from './components/Header'
 import { Icon } from './components/Icon'
@@ -93,6 +93,7 @@ function App() {
   const [activeView, setActiveView] = useState<DashboardView>('inicio')
   const [draftFilters, setDraftFilters] = useState<DashboardFilters>(defaultFilters)
   const [appliedFilters, setAppliedFilters] = useState<DashboardFilters>(defaultFilters)
+  const [tableMode, setTableMode] = useState<TableMode>('filtered')
   const filteredRecords = useMemo(
     () => applyDashboardFilters(salesRecords, appliedFilters),
     [appliedFilters, salesRecords],
@@ -119,6 +120,7 @@ function App() {
   const storeRevenue = groupRevenueBy(filteredRecords, 'store_location')
   const demandHealth = getDemandHealth(filteredRecords)
   const isVisible = (...views: DashboardView[]) => activeView === 'inicio' || views.includes(activeView)
+  const tableRecords = tableMode === 'all' ? salesRecords : filteredRecords
 
   const handleFilterChange = (key: keyof DashboardFilters, value: string) => {
     setDraftFilters((currentFilters) => ({ ...currentFilters, [key]: value }))
@@ -286,7 +288,13 @@ function App() {
           </section>
         )}
 
-        <DataTable records={filteredRecords} />
+        <DataTable
+          filteredCount={filteredRecords.length}
+          mode={tableMode}
+          onModeChange={setTableMode}
+          records={tableRecords}
+          totalCount={salesRecords.length}
+        />
       </main>
     </div>
   )

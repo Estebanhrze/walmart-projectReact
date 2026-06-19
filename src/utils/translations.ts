@@ -1,6 +1,7 @@
 const valueTranslations: Record<string, string> = {
   All: 'Todos',
   Apparel: 'Ropa',
+  Appliances: 'Electrodomésticos',
   Bronze: 'Bronce',
   Cash: 'Efectivo',
   'Credit Card': 'Tarjeta de crédito',
